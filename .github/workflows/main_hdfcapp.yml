@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted  # Make sure your self-hosted runner is online
+    runs-on: windows-latest
     permissions:
       contents: read
 
