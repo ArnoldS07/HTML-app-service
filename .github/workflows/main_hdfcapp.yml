@@ -6,19 +6,20 @@ name: Build and deploy ASP.Net Core app to Azure Web App - hdfcapp
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - main  # Automatically run when code is pushed to main
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: self-hosted  # Make sure your self-hosted runner is online
     permissions:
       contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Set up .NET Core
+      - name: Set up .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.x'
@@ -26,16 +27,16 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore MyWebApp.csproj
 
-      - name: Build with dotnet
+      - name: Build the app
         run: dotnet build MyWebApp.csproj --configuration Release
 
-      - name: dotnet publish
-        run: dotnet publish MyWebApp.csproj -c Release -o ./publish
+      - name: Publish the app
+        run: dotnet publish MyWebApp.csproj --configuration Release --output ./publish
 
-      - name: Upload artifact for deployment job
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: .net-app
+          name: dotnet-app
           path: ./publish
 
   deploy:
@@ -49,12 +50,12 @@ jobs:
       contents: read
 
     steps:
-      - name: Download artifact from build job
+      - name: Download published app
         uses: actions/download-artifact@v4
         with:
-          name: .net-app
+          name: dotnet-app
 
-      - name: Login to Azure with Managed Identity
+      - name: Azure Login with Managed Identity
         uses: azure/login@v2
         with:
           auth-type: IDENTITY
@@ -69,3 +70,4 @@ jobs:
           app-name: 'hdfcapp'
           slot-name: 'Production'
           package: ./publish
+
