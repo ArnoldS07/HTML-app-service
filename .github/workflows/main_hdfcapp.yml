@@ -6,8 +6,8 @@ name: Build and deploy ASP.Net Core app to Azure Web App - hdfcapp
 on:
   push:
     branches:
-      - main  # Automatically run when code is pushed to main
-  workflow_dispatch:  # Allow manual trigger
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -55,13 +55,28 @@ jobs:
         with:
           name: dotnet-app
 
-      - name: Azure Login with Managed Identity
+      - name: Azure Login without subscription (Managed Identity)
         uses: azure/login@v2
         with:
           auth-type: IDENTITY
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: true
           enable-AzPSSession: true
+
+      - name: Azure CLI script (optional)
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            az account show
+
+      - name: Run Azure PowerShell (optional)
+        uses: azure/powershell@v2
+        with:
+          azPSVersion: latest
+          inlineScript: |
+            Get-AzContext
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -70,4 +85,3 @@ jobs:
           app-name: 'hdfcapp'
           slot-name: 'Production'
           package: ./publish
-
