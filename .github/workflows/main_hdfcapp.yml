@@ -60,27 +60,6 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           enable-AzPSSession: true
 
-      - name: Debug:Check if Web App exists in any resource group
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            echo "🔍 Searching for Web App 'hdfcapp' in all resource groups..."
-            found="false"
-            for rg in $(az group list --query "[].name" -o tsv); do
-              echo "➡️ Checking in resource group: $rg"
-              if az webapp show --name hdfcapp --resource-group "$rg" &>/dev/null; then
-                echo "✅ Found 'hdfcapp' in resource group: $rg"
-                found="true"
-                break
-              fi
-            done
-
-            if [ "$found" != "true" ]; then
-              echo "❌ Web App 'hdfcapp' not found in any resource group!"
-              exit 1
-            fi
-
       - name: Azure CLI script
         uses: azure/cli@v2
         with:
@@ -94,6 +73,14 @@ jobs:
           azPSVersion: "latest"
           inlineScript: |
             Get-AzContext
+
+      - name: Check if Web App exists
+        uses: azure/cli@v2
+        with:
+          azcliversion: latest
+          inlineScript: |
+            echo "Checking if 'hdfcapp' exists..."
+            az webapp show --name hdfcapp --resource-group arnold || echo "Web App not found!"
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
