@@ -13,69 +13,50 @@ jobs:
   build:
     runs-on: windows-latest
     permissions:
-      contents: read
+      contents: read #This is required for actions/checkout
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up .NET SDK
+      - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.x'
 
-      - name: Restore dependencies
-        run: dotnet restore MyWebApp.csproj
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
 
-      - name: Build the app
-        run: dotnet build MyWebApp.csproj --configuration Release
+      - name: dotnet publish
+        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
 
-      - name: Publish the app
-        run: dotnet publish MyWebApp.csproj --configuration Release --output ./publish
-
-      - name: Upload build artifacts
+      - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
-          name: dotnet-app
-          path: ./publish
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
 
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
     needs: build
     environment:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write
-      contents: read
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
     steps:
-      - name: Download published app
+      - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
-          name: dotnet-app
-
-      - name: Azure Login with OIDC
+          name: .net-app
+      
+      - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          enable-AzPSSession: true
-
-      - name: Azure CLI script
-        uses: azure/cli@v2
-        with:
-          azcliversion: latest
-          inlineScript: |
-            az account show
-
-      - name: Azure PowerShell script
-        uses: azure/powershell@v2
-        with:
-          azPSVersion: "latest"
-          inlineScript: |
-            Get-AzContext
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_BA814065EBF84DB3AD12356292335393 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_7CAFF0AC231247DC870D3C4E5615F76C }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F001ADCB0DC2414D8EA93692118FABEA }}
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
@@ -83,4 +64,5 @@ jobs:
         with:
           app-name: 'hdfcapp'
           slot-name: 'Production'
-          package: ./publish
+          package: .
+          
